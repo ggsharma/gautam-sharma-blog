@@ -1,0 +1,100 @@
+---
+draft: false
+title: 'Benefit of using auto keyword in C++'
+summary: 'auto keyword is an integral part of modern C++. its a good practice to use auto in various coding scenarios and this blog will highlight some of the most important use cases where you should prefer using auto keyword.'
+date: '2024-03-24'
+tags: ['cpp']
+---
+
+If you have written modern C++, I am 100% sure you might have come across the `auto` keyword. It gives an illusion of writing in a dynamically typed language which is a good thing
+since C++ is notorious for scaring off beginners. I have been reading [Scott Meyers's](https://www.aristeia.com) Effective Modern C++, and I have to say I am learning so much from it. The following is my spin on benefits of using `auto` keyword.
+
+## Prefer auto over std::function
+
+Let's walk over a scenario in which you need to store a function pointer. The first thing that pops up in my mind is std::function. Here's how you do it
+
+```cpp
+void print_num(int i)
+{
+    std::cout << i << '\n';
+}
+
+// store a free function
+std::function<void(int)> f_display = print_num;
+
+```
+
+It's looks great. Here's another way of doing it:
+
+```cpp
+auto f_display = print_num;
+```
+
+### Which one should you choose?
+
+Both of these are correct and are valid C++ code. But, `std::function` is a [template](https://en.cppreference.com/w/cpp/language/templates) initialization. So in simpler terms it will take up more memory. It might also allocate heap memory to store the closure. So in this case auto is the clear winner.
+
+## Iterating over map in a for loop
+
+Let's say you have the following `map` defined:
+
+```cpp
+std::unordered_map<std::string, int> my_map;
+```
+
+What do you think is the key type? If you think it's `std::string` you are wrong. It's `const std::string`. So imagine the following scenario - you want to iterate over the map in a for loop. So you write the following code:
+
+```cpp
+for(const std::pair<std::string, int> & keyValue: my_map){
+    // do something
+}
+```
+
+As I described, the key is `const std::string` but you, as a programmer get an illusion that it's `std::string`. With the above mentioned code, the compiler will make a `copy` of `my_map` in order to satisfy the constraints (`std::pair<std::string, int>`) you have put in the for loop. So now your `keyValue` will hold a reference to a `temporary` object that will be destroyed after the for loop. Seems scary isn't it.
+
+Here's how you can avoid it:
+
+```cpp
+for(const auto & keyValue: my_map){
+    // do something
+}
+```
+
+`auto` will automatically derive the correct type of the `key`.
+
+## Important caveat - `std::vector<bool>`
+
+Although `auto` works out of the box for the most use cases, you really need to pay attention when using it with `std::vector<bool>`.
+Let's assume you have the following data structure:
+
+```cpp
+std::vector<bool> cache_hit;
+// Let's assume it gets initialized and contains valid entry
+```
+
+If you do something like:
+
+```cpp
+bool cache_status = cache_hit[0];
+```
+
+This will work fine. You will get the correct cache status. Now let's consider the case of using `auto`:
+
+```cpp
+auto cache_status = cache_hit[0];
+```
+
+This is <u className="dark:text-red-700">dangerous</u>. `auto` will try to get value by reference because of the [] operator and according to C++ standards, reference to bits is **forbidden**. So `std::vector<bool>` returns a proxy object that behaves as a reference. It returns `std::vector<bool>::reference`, not bool. Therefore, `cache_status` is a copy of this reference, not the actual boolean value. So when the `cache_status` gets initialized, the temp proxy object is <u className="dark:text-red-700">destroyed</u> from the stack and now `cache_status` contains a dangling reference.
+
+By explicitly casting the result to bool, you ensure that `cache_status` contains the actual boolean value rather than a reference to it. This prevents unexpected behavior and ensures that your code behaves as expected.
+
+```cpp
+
+auto cache_status = static_cast<bool>(cache_hit[0]);
+```
+
+I hope this blog was helpful.
+
+Signing out
+
+-G

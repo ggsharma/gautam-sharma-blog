@@ -1,0 +1,96 @@
+---
+draft: false
+title: Do you really know constexpr?
+summary: constexpr is a keyword that was introduced in C++ 11 and revised in C++14. It is extremely versatile and it is a good practice to incorporate it in a lot of situations.
+date: '2024-04-02'
+tags: ['cpp']
+---
+
+## Sneakiness of constexpr
+
+I am assuming in your C++ journey, you might have come across constexpr for sure. While on the surface it looks like you are defining a `constant` expression, the questions is are you really doing that?
+
+The answer is `yes` and `no`.
+
+## Yes how?
+
+If you are defining a variable as a constant, you are telling the compiler that the value of this variable is known at `compile time` (linking time to be accurate) and is `constant`:
+
+```cpp
+constexpr int a = 10; // Valid use
+constexpr int b; // Will give a compiler error since value of b is unknown
+```
+
+In easy terms, every constexpr variable is const but not vice-versa.
+
+## No how?
+
+The real sneakiness of `constexpr` comes into play with functions. It is not `guaranteed` that a function defined as `constexpr` will indeed be evaluated at compile time. Here are two scenarios:
+
+### All arguments of the function are available at compile time
+
+The function will hence be computed at compile time. Example:
+
+```cpp
+constexpr int arg1 = 10;
+constexpr int arg2 = 20;
+
+constexpr int sum(int a, int b){
+    return a + b;
+}
+
+sum(arg1,arg2); // Evaluated at compile time
+
+int arr[sum(arg1,arg2)]; // Will compile fine
+```
+
+### One or more arguments of the function are not available at compile time
+
+The function will be computed at runtime. Example:
+
+```cpp
+const int arg1;
+constexpr int arg2 = 20;
+
+constexpr int sum(int a, int b){
+    return a + b;
+}
+
+sum(arg1,arg2); // Evaluated at run time
+
+int arr[sum(arg1,arg2)]; // Will not compile
+```
+
+You can achieve two functionalities with this trick. You can make your function behave differently for different arguments.
+
+## Wrapping up
+
+`constexpr` functions only work with `literal types` as arguments and return types. Literal types include every built-in type except for `void`. It can also work with any user-defined types as well only if the user type has a constexpr constructors and member functions.
+
+Example:
+
+```cpp
+class Database{
+  std::string _fileName;
+  public:
+  constexpr Database(std::string fileName): _fileName(fileName){};
+  constexpr std::string serialize(){
+      // some logic here
+  }
+};
+
+constexpr Database db("someFileName");
+constexpr serializationResult = db.serialize();
+```
+
+### Note
+
+Remember I said that `constexpr` functions do not work with `void`. Since C++14, `setters` are allowed to have a void return type as `constexpr` expressions.
+
+Also, be very careful in defining any epxressions as `constexpr`. Once you do that, it's very difficult to revert back because your clients will suddenly start getting compile time errors.
+
+Hope this helps.
+
+Signing out,
+
+-G

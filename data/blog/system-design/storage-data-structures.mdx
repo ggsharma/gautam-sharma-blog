@@ -1,0 +1,180 @@
+---
+draft: false
+title: 'Storage and Retrieval Data Structures and Techniques'
+summary: 'This blog talks about data structures and algorithms used to design storage and retieval solutions'
+date: '2024-04-06'
+tags: ['System Design', 'Data structures', 'algorithms']
+---
+
+## Storage and Retrieval Data Structures and Techniques
+
+Before we delve into modern storage data structures, I want to clarify what this blog is not about:
+
+- Database systems
+- Hard drive systems
+
+This blog is about current trends in storage techniques in crafting efficient and low-latency data structures.
+
+### Simple Database
+
+The idea of storing data is simple. We need it to be persistent, which means we need it to be committed to the hard drive. That's not the only requirement, but it does give us a good starting point. Let's build upon this and make our first database:
+
+```bash
+echo "hello,world" >> database
+```
+
+If you look into the `database`, you should see "hello,world".
+
+This is as simple as it can get. And to be honest, if it fulfills your requirements, then stick with it. Don't overcomplicate things.
+
+Quick question: What is the time complexity if you want to retrieve a value?
+
+> Answer: It's O(n). We need to scan the whole document. Can we do better?
+
+## Better Version - Using Index for Search
+
+Let's make our search better. What's the data structure that you throw at any problem when you don't know how to solve it? It's our good old **hashmap**. Let's keep `database` intact but let's make a small change. Let's keep an in-memory hashmap that stores the `byte offset` as the value corresponding to the key.
+
+#### What is the byte offset?
+
+> It is the `byte` at which you are appending the value in the file. Let's consider the following:
+
+```python
+# In memory hashmap
+byte_offset_map = {"key1", "OXff0034","key2", "OXff0039","key3", "OXff0049"}
+# In hard disk, the database looks like:
+# "key1": "value1"
+# "key2": "value2"
+....
+```
+
+Here is how `database` looks:
+
+`key1 : value1`
+
+key 1 starts at byte `OXff0034`
+
+`key2 : value2`
+
+key 2 starts at byte `OXff0039`
+
+You can directly get the `byte offset` of a particular key and the index into the database.
+
+This is a pretty efficient storage system. It assumes that all the keys can be stored in RAM. This assumption will work fine for small data storage solutions.
+
+What happens when the database file gets too big? Remember, you are just appending to it. One solution is to perform `compaction`. It is a technique in which the database file is broken down by removing duplicate keys in the log and new smaller segments are created out of it. We can also merge several segments together.
+It is made sure that the compaction and merge happens on a different thread so the writes and read requests are still served by a main thread using the older segment files in memory. Once merge and compaction happens, the older files are deleted.
+
+#### Some Issues
+
+- How would you delete a record? Some databases append a special character called `tombstone` that tells the merging process to delete the record.
+- How will you recover from a crash? If the system crashes, the in-memory hashmap will be lost.
+- The database might crash and cause some records to be partially written.
+
+#### Advantages of Hash Table
+
+- Extremely fast writes since you are just appending to a file
+- Crash recovery is `easier` since you are sure that at least you don't have a mismatch of data between different segments when a value was being overwritten since each segment is append-only and immutable.
+
+#### Disadvantages of Hash Table
+
+- Must fit in memory.
+- Does not support range queries. What if I want to get all keys between "key1" and "key9999"?
+
+### SSTables and LSM-Trees
+
+What if you build from the last approach and make a simple change? Just keep the segment files sorted by keys. A simple merge sort algorithm can be used to merge two segments. What if the same key appears in several segments? We keep the value from the most recent segment.
+
+> SSTables stands for Sorted String Table and LSM stands for Log-Structured Merge-Tree
+
+The major problem SSTables solves is that it supports range queries. Assume this hypothetical data structure:
+
+```python
+key      byte offset         sorted segments -> alphabetically sorted
+hello    0Xff0089    ->      hello:"some value"(start at 0Xff0089 )| help: "another value" | helt : "some another value"
+hi       0Xff0179    ->      hi:"some value"                       | hii: "another value"  | hit : "some another value"
+jelly    0Xff0234            and so on
+```
+
+Let's say I am looking for a word `hulk`. I will look at my byte offset dictionary and will know that it must lie between `0Xff0089` and `0Xff0234`.
+While searching in between those addresses, I further compress and merge these segments to make it more efficient.
+
+#### Constructing SSTables
+
+The following steps are followed:
+
+1. During a write, we add the key and value to an in-memory hashmap (Red-black or AVL trees).
+2. When the hashmap becomes too big, we write it out to disk as an SSTable file. Writes continue to happen during this operation.
+3. During a read request, find the key in the hashmap. If not, go down the SSTable hierarchy based on time.
+4. Run a merging and compaction process at intervals.
+
+#### Advantages
+
+- It can support very high write throughput because it writes data to a hashmap sequentially.
+- Supports range queries.
+
+### B-Trees
+
+B-Trees are one of the more common data structures employed in the industry. Like LSM-Trees, they keep their key and value sorted. The only difference being that they store fixed-size blocks in memory (around 4 KB called page) rather than variable-size blocks stored by LSM-Trees. This emulates how the hardware stores its memory as well and because of that gives us better speed on reads.
+
+![B-tree visualization](/static/images/blog/system-design/btree.png)
+
+A B-Tree starts with a root page that consists of pointers to other children pages. These pointers refer to memory on disk not in RAM. Whenever you get a read query, you start from the root of the tree, and then traverse down to its children. The process looks like:
+
+1. Look up user `id = 25` -> will lie between node 20 and 30
+
+Assume the root page to look like: [10, 20 (Its children contain `20<=key<=30`), 30, 40, 50]
+
+2. Go to the child page to node having key `20` and look at that. Let's say we get:
+   [22,23,27]
+
+3. We know `25` will lie in the child page of `23` since `23 <= 25 <= 27`.
+4. We continue this process until we reach the end or find the node.
+
+If you want to update
+
+the value of a key, you first find the node, change its value, and write the page back to disk.
+
+If you want to add a new key that does not lie in the range of the current page, for example, if you want to add 60 to [10,20,30,40,50] and there is no space left in the page then the page is broken down into two full pages to accommodate the new value.
+
+> B-Trees with n keys have a depth of O(log n)
+
+A four-level tree of 4 KB pages with a branching factor of 500 can store up to 256 TB!
+
+#### Reliability
+
+Any write operation in a B-Tree overwrites a page on disk with new data. It does not change the memory address of the page itself. It just changes the pointers to memory stored in the page. That is very different from LSM-Trees which only supported append-only operations.
+
+This can also be considered a downside of B-Trees because what if the database crashes in the middle of a write?
+You might get dangling references to memory. To make it more reliable, B-Trees implement write-ahead log (WAL) [^1].
+[^1]: This is an append-only file to which every B-Tree modification must be written before it can be applied to the pages of the tree.
+It is used to restore the tree if some crash or corruption happens.
+
+#### Issues with B-Trees
+
+1. If a range query is requested from the database, it is possible that B-Trees have to read all the pages from the disk which can be quite inefficient because there is no rule that enforces B-Trees to store pages sequentially in memory. In contrast, LSM-Trees rewrite large segments of the storage in one go during merging so it's easier for them to keep sequential keys closer to each other on disk.
+
+### TL;DR of B-Trees vs LSM-Trees
+
+| B-Trees                                                                                           | LSM-Trees                                                                         |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Slower writes (Might need to create two pages if one page is full and needs to write to WAL [^1]) | Faster writes                                                                     |
+| Faster reads                                                                                      | Slower reads because they have to check various data structures (sorted segments) |
+
+### When LSM-Trees are Better than B-Trees
+
+Write Amplification: Number of writes to the disk due to a single write to the database
+
+1. LSM-Trees have lower write amplification because they sequentially write data to SSTable. B-Trees, on the other hand, have to do in-memory operations so they might need to read several pages, change pointers of parents, children, etc.
+2. LSM-Trees can be compressed better and use less memory, B-Trees, on the other hand, might cause fragmentation because of unused space on the page due to it having fixed size.
+
+### When B-Trees are Better than LSM-Trees
+
+1. Compaction and merging processes reduce the performance of the ongoing reads and writes in LSM-Trees.
+2. If write throughput is more than the compaction speed, you will get unmerged segments on the disk until you run out of space. It will reduce the read throughput as well since there will be more SSTables to read from.
+3. In B-Trees, a key exists in only one place, whereas in LSM-Trees, there can be duplicate keys in different segments.
+4. Implementing concurrency is easier in B-Trees. You just need to implement simple locks.
+
+That was it. I hope it was informative. There is no good or bad choice for data storage. You just need to consider the tradeoffs and make an informed decision.
+
+-G

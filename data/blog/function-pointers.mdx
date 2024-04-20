@@ -1,0 +1,76 @@
+---
+draft: false
+title: Function Pointers
+summary: In this blog, we delve into the intriguing world of function pointers in C++. Function pointers, which are pointers that hold the address of a function, offer a way to make your C++ programs more flexible and dynamic. We start from the basics, introducing the concept with simple examples, and then navigate through the syntax complexities using the handy tool typedef.
+date: '2023-01-06'
+tags: ['cpp', 'functions']
+---
+
+In C++, a function pointer is a variable that stores the address of a function that can later be called through that function pointer. This is a high-level concept that provides flexibility and power, but can also introduce complexity. Let's take a look at how to use it.
+
+A simple example of a function and a function pointer in C++ looks like this:
+
+```cpp
+void myFunction(int x) {
+    std::cout << "Value: " << x << '\n';
+}
+
+int main() {
+    void (*fp)(int);  // Function pointer definition
+    fp = &myFunction; // Assign address to pointer
+    (*fp)(5);         // Call function using pointer
+}
+```
+
+In the code above, we define a function called `myFunction`, and a function pointer `fp`. We then assign the address of `myFunction` to `fp`, and use `fp` to call `myFunction`.
+
+## The Syntax
+
+We can admit, the syntax is a bit complex and not quite intuitive. The function pointer definition `void (*fp)(int);` can be quite challenging to read, especially when working with more complex function signatures. Luckily, C++ offers a great tool to simplify this: `typedef`.
+
+With `typedef`, you can define a new data type and make the code more readable:
+
+```cpp
+typedef void (*functionPtr)(int);
+```
+
+Now, you can define the function pointer as:
+
+```cpp
+functionPtr fp = &myFunction;
+```
+
+## The Power of Function Pointers
+
+What makes function pointers really powerful is that you can switch the function the pointer refers to, at runtime. This can be very useful in various scenarios, such as callback functions, strategy pattern, and more. For example:
+
+```cpp
+void functionOne(int x) {
+    std::cout << "Function One: " << x << '\n';
+}
+
+void functionTwo(int x) {
+    std::cout << "Function Two: " << x << '\n';
+}
+
+int main() {
+    functionPtr fp;
+    int x = 10;
+
+    fp = &functionOne;
+    (*fp)(x);  // Calls functionOne
+
+    fp = &functionTwo;
+    (*fp)(x);  // Calls functionTwo
+}
+```
+
+## Some Caveats
+
+Just as with any powerful tool, function pointers come with their own set of issues and caveats. For instance, if a function pointer is `NULL` and you try to call a function through it, your program will crash. So, always ensure your function pointers are pointing to valid functions.
+
+For a more detailed overview, check out the [Function Pointers in C and C++](https://www.cprogramming.com/tutorial/function-pointers.html) tutorial on Cprogramming.com. Another fantastic resource is [this article](http://www.newty.de/fpt/index.html) by Lars Haendel, which provides an in-depth look at function pointers in C++.
+
+Signing out,
+
+-G

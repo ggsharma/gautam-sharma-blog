@@ -1,0 +1,97 @@
+---
+draft: true
+title: Multithreading in const member functions
+summary: This blog highlights some safety rules to consider when multithreading in a const member functions in C++.
+date: '2024-04-08'
+tags: ['multithreading', 'cpp']
+---
+
+## Thread safety in const member functions
+
+Let's look at a sample C++ class:
+
+```cpp
+class NetworkPacket{
+  public:
+  NetworkPacket();
+  void* getByteOffset() const;
+};
+```
+
+Any const member function gets a `const` `this` pointer as an argument. That means that we really cannot change any class state inside these type of functions. Well, sought off. C++ always has a workaround.
+
+Enter `mutable`.
+
+### mutable keyword
+
+It is a special keyword which when used in the context of class member variables mean that their value can be mutatated inside a `const` function.
+
+Example:
+
+```cpp
+class NetworkPacket{
+ private:
+    mutable size_t numBytes = 0;
+  public:
+  NetworkPacket();
+  void* getByteOffset() const{
+      numBytes += 1; // VALID: Compiler will not complain
+  }
+};
+```
+
+### Multithreading with const
+
+With the introduction of mutable, multithreading becomes a little tricky now. Earlier, we were guaranteed that any queries to `getByteOffset` will not change it's state since it is a const function.
+
+Now things look quite different. Multiple threads will now `mutate` the value of `numBytes` and we need to be extremely careful.
+
+We have a number of options:
+
+1. We can employ a `std::mutex`
+
+The modified class looks like:
+
+```cpp
+class NetworkPacket{
+ private:
+    mutable std::mutex m;
+    mutable size_t numBytes = 0;
+  public:
+  NetworkPacket();
+  void* getByteOffset() const{
+      std::lock_guard<std::mutex> g(m);
+      numBytes += 1; // VALID: Compiler will not complain
+  }
+};
+```
+
+This will work but the downside is that now `NetworkPacket` can only be moved since `std::mutex` does not permit copying.
+
+2. We can employ a `std::atomic`
+
+The modified class looks like:
+
+```cpp
+class NetworkPacket{
+ private:
+    mutable std::atomic<unsigned> numBytes{0};
+  public:
+  NetworkPacket();
+  void* getByteOffset() const{
+      ++numBytes;
+  }
+};
+```
+
+This is lightweight and easier to implement than a `mutex`.
+
+Like a `mutex`, a `std::atomic` also makes a class `move` only.
+
+> Be careful with multiple variables defined as `std::atomic`. That makes it more tricky to synchronize stuff. A `std::mutex` should be preferred in those cases.
+
+I kept this blog nice and short. Hope you learned something out of it.
+
+Signing out,
+
+-G
