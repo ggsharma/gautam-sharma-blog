@@ -1,0 +1,127 @@
+---
+draft: false
+title: 'R-value reference, std::move and perfect forwarding'
+summary: 'In this beginner-friendly blog post, we explore fundamental concepts in C++ programming: R-value references, std::move, and std::forward. These concepts might sound complex, but they are crucial for writing efficient and high-performance C++ code.'
+date: '2024-04-30'
+tags: ['cpp']
+---
+
+## What are R-value references, std::move, and std::forward?
+
+Once you've got a good handle on C++, some things can get pretty puzzling, and one of those things is R-value references. But understanding them is key to getting your head around move semantics and perfect forwarding.
+
+So, first off, let's clear up what we mean by r-values and l-values. If something has a spot in the computer's memory, it's called an l-value. Anything else is an r-value. For instance:
+
+```cpp
+int a = 7; // a is an l-value
+
+int b = int(2); // Here, int(2) is an r-value
+```
+
+### R-value references
+
+R-value references are a bit different from r-values. Since they're references, they've got a home in memory. This matters because normal temporary (r-value) things can't connect to l-value references. To fix this, we use r-value references. Check it out:
+
+```cpp
+void someFcn(int& w){
+}
+
+someFcn(2); //  Oops! Can't connect an r-value to an l-value reference!
+```
+
+But with an r-value reference, it's all good:
+
+```cpp
+void someFcn(int&& w){
+}
+
+someFcn(2); //  All good now!
+```
+
+Here's another important thing to remember:
+
+> Even though a parameter is connected to an r-value reference, it's still an l-value.
+
+In that example above, `w` is the parameter, which is always an `l-value`, even though it's connected to an `r-value reference`. How do we know? Well, if you peek inside `someFcn` while it's running, you'll see you can find the `address` of `w`. That means it's an l-value.
+
+### std::move
+
+Once you've wrapped your head around all that, understanding `std::move` is pretty straightforward. Basically, it doesn't physically move anything.
+
+> It just changes a regular reference into an r-value reference.
+
+Here's a simple way to make a move function yourself:
+
+```cpp
+template<typename T>
+decltype(auto) move(T&& arg){
+    return static_cast<T&&>(arg);
+}
+```
+
+It's just changing a reference to an r-value reference. It doesn't move anything physically. We use `remove_reference_t` because `arg` is a fancy kind of reference that can connect to both r-values and l-values. But what's that fancy reference called? Well, it's called a `universal reference`. But don't worry about that too much for now. Just think of it as a reference that can connect to both kinds of values and looks like this:
+
+```cpp
+template<typename T>
+any_return_type fcn(T&& I_Am_A_Universal_Reference)
+```
+
+#### std::move doesn't always move
+
+So you've used std::move and you think your code's super efficient now, right? Nope, not quite.
+Check this out:
+
+```cpp
+class Widget{
+    public:
+    explicit Widget(const std::string uniqueID): uuid(std::move(uniqueID)){
+
+    }
+    std::string uuid;
+};
+```
+
+This code seems fine, but it actually makes a **copy**, not a **move**. That's because `uniqueID` is an l-value since it's a parameter. So even when we move it, the reference changes but the `const` tag sticks around. That means after moving, `uniqueID` is still treated as a constant r-value. But the move constructor we want to use needs its parameter to be an r-value, so it ends up using the copy constructor instead.
+
+1. So, if you want to move things, don't declare them as `const`.
+2. If you do, move turns into copy.
+
+### std::forward
+
+Think of `std::move` as a simple cast that always turns things into r-values. But `std::forward` is a bit smarter. Here's how it works:
+
+1. If the input parameter is an r-value reference, it casts it to an r-value.
+2. If the input parameter is an l-value reference, it keeps it as an l-value.
+3. Remember, the parameter itself is always an l-value.
+
+Here's an example to make it clearer:
+
+```cpp
+
+void print(const std::string& lValueArg);
+void print(std::string&& rValueArg);
+
+template<typename T>
+void fcn(T&& param){
+    print(std::forward<T>(param));
+}
+
+/*
+Calls fcn with an R-value reference. std::forward sees this and turns the parameter, which is originally an l-value, into an r-value reference. Then it sends it to print, and it uses this definition:
+void print(std::string&& rValueArg);
+*/
+fcn("Bound to R-value reference");
+
+/*
+Calls fcn with an L-value reference. std::forward sees this and doesn't do anything (it's a conditional cast), then sends it to print, and it uses this definition:
+void print(const std::string& lValueArg);
+*/
+std::string lVal = "Bound to L-value reference";
+fcn(lVal);
+```
+
+### Conclusion
+
+1. std::move changes things into r-values without conditions.
+2. std::forward only changes things into r-values if they're originally r-values.
+3. Neither of them does anything fancy at runtime.
