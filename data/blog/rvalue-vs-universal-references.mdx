@@ -1,0 +1,85 @@
+---
+draft: false
+title: 'R-value reference vs Universal references'
+summary: 'Dive into the world of C++ references! Learn about rvalue references and universal references, what makes them different, and how to use them for better coding.'
+date: '2024-05-05'
+tags: ['cpp']
+---
+
+## Universal References vs Rvalue References
+
+Let's clear up the confusion between `T&&` in C++. It's not just about rvalue references; there's another concept called universal references.
+
+### What's an Rvalue Reference?
+
+Simply put, an rvalue reference is a reference that can bind to a temporary value. For example:
+
+```cpp
+MyClass&& a = MyClass(); // Here, 'a' is an rvalue reference
+```
+
+### What's a Universal Reference?
+
+A universal reference is a type of reference that can bind to both lvalues and rvalues. Check this out:
+
+```cpp
+auto&& a = MyClass(); // Here, 'a' is a universal reference
+auto&& b = a; // 'b' also becomes a universal reference
+```
+
+### How Do They Differ?
+
+At first glance, they might seem similar, but there's a subtle difference.
+
+Universal references typically appear in template functions like this:
+
+```cpp
+template<typename T>
+void foo(T&& args)
+{
+    // Do something
+}
+```
+
+In this case, `args` is a universal reference.
+
+On the other hand, if we have something like this:
+
+```cpp
+template<class T>
+class MyClass {
+    void foo(T&& args)
+    {
+        // Do something
+    }
+};
+```
+
+Here, `args` is an rvalue reference.
+
+How can you tell them apart?
+
+It's simple. For something to be a universal reference, two conditions must be met:
+
+1. The parameter must be in the form `T&&`. It can also be like `Args&& ...`.
+2. The type of the argument must be deduced when the function is called.
+
+For example:
+In `MyClass::foo()`, the type `T` isn't deduced when calling the function. It's deduced when initializing `MyClass`. So, `args` here is an rvalue reference.
+
+But in `foo()`, the type needs to be deduced, making it a universal reference.
+
+Another example:
+
+```cpp
+template<typename T>
+void f(const T&& param); // 'param' is an rvalue reference
+```
+
+Since `auto` also leads to type deduction, this:
+
+```cpp
+auto&& x = MyClass();
+```
+
+Makes `x` a universal reference.
