@@ -1,4 +1,5 @@
 /** @type {import("pliny/config").PlinyConfig } */
+console.log(process.env.NEXT_PUBLIC_GISCUS_REPO)
 const siteMetadata = {
   title: "Gautam Sharma's blog",
   author: 'Gautam Sharma',
