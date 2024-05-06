@@ -40,6 +40,6 @@
     ".contentlayer/generated",
     ".contentlayer/generated/**/*.json",
     ".next/types/**/*.ts"
-  ],
+, "components/Comments.jsx"  ],
   "exclude": ["node_modules"]
 }

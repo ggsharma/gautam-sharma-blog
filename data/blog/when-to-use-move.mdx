@@ -1,0 +1,102 @@
+---
+draft: false
+title: 'When to use move and perfect forwarding'
+summary: 'Understanding when to use std::move and std::forward in C++ is crucial for efficient programming. The rule of thumb is to use std::move for temporary values (rvalue references) and std::forward for universal references. '
+date: '2024-05-06'
+tags: ['cpp']
+---
+
+## Knowing When to Use std::move and std::forward
+
+Here's a simple rule:
+
+> Use std::move when dealing with temporary values (rvalue references), and std::forward when handling universal references.
+
+Check my earlier blog post for a detailed explanation of rvalue and universal references.
+
+In short:
+
+1. Rvalue references bind only to temporary values.
+2. Universal references bind to both temporary and permanent values.
+
+Let's dive into an example:
+
+```cpp
+class Database {
+public:
+    template <typename T>
+    void setUUID(T&& uuidArg) {
+        _uuid = std::move(uuidArg);
+    }
+    std::string _uuid;
+};
+```
+
+If you recall from my previous blog, `T&&` in `setUUID` signifies a universal reference. Indeed it does. However, there's a subtle problem here. Let's consider how a client might use this function:
+
+```cpp
+Database db;
+std::string uuid = "1234";
+db.setUUID(uuid);
+```
+
+The client seems to be using `setUUID` correctly. But unfortunately, disaster strikes. `setUUID` **moves** the UUID, which is a permanent value (lvalue reference), into `_uuid`. This means the client's `uuid` now holds some garbage value. All because the current version of `setUUID` accepts universal references, allowing us to pass in a permanent value and then move it. This is very risky!
+
+So now we understand why moving a permanent value is a bad idea. `std::move` should only be used for temporary values (rvalues). If our client called `setUUID` like this, there would be no issue:
+
+```cpp
+db.setUUID("1234"); // rvalue
+```
+
+But what's the fix?
+
+You might suggest making `uuid` `const` and overloading the `setUUID` function:
+
+```cpp
+class Database {
+public:
+    void setUUID(const std::string& uuidArg) {
+        _uuid = uuidArg; // set from permanent value
+    }
+    void setUUID(std::string&& uuidArg) {
+        _uuid = std::move(uuidArg); // set from temporary value
+    }
+    std::string _uuid;
+};
+std::string uuid = "1234";
+db.setUUID(uuid); // void setUUID(const T& uuidArg) will be called
+```
+
+But this is inefficient and requires more code. Plus, consider this:
+
+```cpp
+db.setUUID("1234");
+```
+
+It first creates a temporary string object, which then matches with the `void setUUID(std::string&& uuidArg)` function overload and gets moved.
+
+> This overhead of creating a temporary object doesn't exist when using universal references as input.
+
+So, what's the better solution?
+
+### Universal References with std::forward
+
+`std::forward` does a simple thing: it casts to a temporary value if the argument was initialized as one, otherwise it does nothing. For example:
+
+```cpp
+class Database {
+public:
+    template <typename T>
+    void setUUID(T&& uuidArg) {
+        _uuid = std::forward<T>(uuidArg);
+    }
+    std::string _uuid;
+};
+
+Database db;
+std::string uuid = "1234";
+db.setUUID(uuid); // std::forward keeps uuidArg unchanged since it was initialized as a permanent value;
+db.setUUID("1234"); // std::forward casts uuidArg to a temporary value since it was initialized as one;
+```
+
+This is the correct approach.
