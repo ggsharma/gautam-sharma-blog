@@ -1,0 +1,75 @@
+---
+draft: false
+title: 'When to return by value'
+summary: 'Learn about the proper scenarios for using move and forward in C++ functions to return values efficiently. Avoid over-optimization and trust the compilers optimizations.'
+date: '2024-05-08'
+tags: ['cpp']
+---
+
+## When to Return by Value from a Function?
+
+If you've been following my previous blogs, you might be eager to use `std::move`. At some point, you might consider using it to return a value from a function. This blog will discuss whether that's a good idea or not.
+
+### Proper Use Case for Returning by Move
+
+Imagine you have a function that receives an r-value reference and performs some operation on it, then wants to return it. In this scenario, using `std::move` could be advantageous.
+
+```cpp
+Tensor operator+(Tensor&& lhs, const Tensor& rhs){
+    lhs += rhs;
+    return std::move(lhs);
+}
+```
+
+Since `lhs` is an l-value (because it's a parameter) bound to an r-value reference, using `std::move` is beneficial. If `Tensor` doesn't support move construction, that's fine too because in that case, the copy constructor will be called.
+
+### Proper Use Case for Returning by Forward
+
+Let's adjust our previous example to work with universal references.
+
+```cpp
+template <typename T>
+Tensor sum(T&& tensor){
+    tensor.sum();
+    return std::forward<T>(tensor); // moves r-value; copies l-value
+}
+```
+
+In this function, the return statement acts as `std::move` for r-values and a no-op for l-values. This means the move constructor will be called for r-values and the copy constructor for l-values.
+
+### When Not to Use Move and Forward
+
+In the C++ standard, there are two rules stating that compilers may elide the copying or moving of objects that are returned by value if:
+
+1. The type of the local object is the same as that returned by the function.
+2. The local object is what's being returned.
+
+Let's look at an example:
+
+```cpp
+Tensor makeTensor(){
+    Tensor t;
+    return t;
+}
+```
+
+This copies `t` to the returned `Tensor`, but in reality, the compiler will perform return value optimization (RVO) and elide the copy because the first two conditions were met. However, if you use `std::move` in the return, you will hurt performance because now there won't be any RVO since `std::move` produces an r-value reference and doesn't satisfy the conditions mentioned before. So it will force the compiler to not perform RVO and perform a move or copy.
+
+Let's say you are insistent on using `std::move` because you don't trust the compiler. For you, there is another rule: 3. If compilers choose not to perform copy elision, the object being returned _must_ be treated as an r-value.
+
+So, for our `makeTensor` function, if the compiler chooses not to perform RVO, it has to cast the return value to an r-value. In that case, `makeTensor` will look like this:
+
+```cpp
+Tensor makeTensor(){
+    Tensor t;
+    return std::move(t);
+}
+```
+
+All that to say:
+
+> Do not over-optimize your code. The compiler is mostly one step ahead.
+
+I hope you enjoyed this blog.
+
+-G
