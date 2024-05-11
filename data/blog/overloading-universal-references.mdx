@@ -1,0 +1,91 @@
+---
+draft: false
+title: 'Overloading with Universal References'
+summary: 'This blog talks about the pitfalls of overloading on universal references and how to avoid them.'
+date: '2024-05-11'
+tags: ['cpp', 'OOP']
+---
+
+## Overloading with Universal References
+
+Imagine needing a function, `cache`, that can gracefully handle both lvalues and rvalues. You might initially implement it like this:
+
+```cpp
+std::set<std::string> _cache;
+
+template<typename T>
+void cache(T&& arg){
+    _cache.emplace(std::forward<T>(arg));
+}
+
+std::string name = "Mary Jane";
+cache(name); // Accepts lvalue
+cache(std::string("Some Name")); // Accepts rvalue
+cache("Another Name"); // Accepts string literal
+```
+
+### The Trap of Overloading
+
+However, if you attempt to overload on universal references, you'll soon hit a snag. Consider this additional definition of `cache`:
+
+```cpp
+void cache(int idx);
+```
+
+Now, observe what happens with various calls:
+
+```cpp
+std::string name = "Mary Jane";
+cache(name); // All good
+cache(std::string("Some Name")); // Still fine
+cache("Another Name"); // No problem
+
+short idx  = 1;
+cache(a); // Uh-oh, unexpected compile-time error
+```
+
+Even though the intention was clear, the overloaded universal reference version gets invoked due to C++ rules favoring the best match. Unfortunately, this results in adding a `short` to a set of strings, leading to a compilation error.
+
+> Functions accepting universal references can be overly eager in grabbing arguments.
+
+The situation becomes dire if you encounter constructors designed to accept universal references:
+
+```cpp
+class Widget{
+  private:
+       std::string uuid;
+  public:
+      template<typename T>
+      Widget(T&& n):  uuid(std::forward<T>(n)){}
+};
+
+Widget w("1234");
+auto cloneOfWidget(w); // Attempting to create a new widget fails to compile
+```
+
+The problem stems from the generated default copy and move constructors, which aren't what we expect. In reality, `Widget` looks more like this:
+
+```cpp
+class Widget{
+  private:
+       std::string uuid;
+  public:
+      template<typename T>
+      Widget(T&& n):  uuid(std::forward<T>(n)){}
+      Widget(const Widget&);
+      Widget(Widget&&);
+};
+```
+
+But when creating `cloneOfWidget`, it defaults to calling the universal reference constructor because it seems like a better match. This results in confusion and compilation errors.
+
+To resolve this, adding a `const` qualifier to `w` helps guide the compiler:
+
+```cpp
+const Widget w("1234");
+auto cloneOfWidget(w); // Now correctly invokes the copy constructor
+```
+
+Remember, in the realm of C++:
+
+1. If both template and non-template instantiations are equally viable, the non-template function takes precedence.
