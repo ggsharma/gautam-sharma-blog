@@ -6,6 +6,8 @@ import { genPageMetadata } from 'app/seo'
 
 export const metadata = genPageMetadata({ title: 'About' })
 
+import MyTimeline from '@/components/Timeline'
+
 export default function Page() {
   const author = allAuthors.find((p) => p.slug === 'default') as Authors
   const mainContent = coreContent(author)
@@ -14,6 +16,7 @@ export default function Page() {
     <>
       <AuthorLayout content={mainContent}>
         <MDXLayoutRenderer code={author.body.code} />
+        <MyTimeline />
       </AuthorLayout>
     </>
   )

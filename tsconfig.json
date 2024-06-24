@@ -39,7 +39,8 @@
     "**/*.json",
     ".contentlayer/generated",
     ".contentlayer/generated/**/*.json",
-    ".next/types/**/*.ts"
-, "components/Comments.jsx"  ],
+    ".next/types/**/*.ts",
+    "components/*.jsx"
+  ],
   "exclude": ["node_modules"]
 }
