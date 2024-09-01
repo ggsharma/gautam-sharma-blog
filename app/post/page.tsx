@@ -31,6 +31,7 @@ import {
   ShowSandpackInfo,
   AdmonitionDirectiveDescriptor,
   directivesPlugin,
+  SandpackConfig,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
 import { ForwardRefEditor } from "./ForwardRefEditor";
