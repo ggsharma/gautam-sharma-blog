@@ -1,0 +1,107 @@
+---
+draft: false
+title: Process API in UNIX
+summary: The exec family of functions in Unix systems allows a process to replace its own executable code with a different executable.
+date: "2024-09-30"
+tags: ["os", "UNIX"]
+canonicalUrl: https://gsharma.dev/blog/operating-systems/process-api
+---
+
+The `exec` family of functions in Unix-like systems allows a process to replace its own executable code with a different executable. There are several variants of the `exec` function because different programs and use cases require different levels of control over how the new executable is loaded and executed.
+
+Here's an overview of the **`exec` variants** and why each exists:
+
+### 1. **Basic `exec` Family Functions:**
+
+- **`execl`**: Execute a file using a list of arguments.
+- **`execv`**: Execute a file using an array of arguments.
+- **`execle`**: Execute a file with a list of arguments and specify environment variables.
+- **`execve`**: Execute a file with an array of arguments and environment variables.
+- **`execlp`**: Execute a file using a list of arguments and search for the executable in the system’s `PATH`.
+- **`execvp`**: Execute a file using an array of arguments and search for the executable in the system’s `PATH`.
+
+Each of these functions has a specific use case, allowing for flexibility in different scenarios:
+
+### 2. **Key Differences Between Variants:**
+
+#### **1. `execl` (List of Arguments)**:
+
+- **Signature**: `int execl(const char *path, const char *arg0, ..., (char *) 0);`
+- Takes the path to the executable and a **list of arguments**, passed as separate parameters.
+- Example:
+  ```c
+  execl("/bin/ls", "ls", "-l", (char *)NULL);
+  ```
+- **Why it exists**: For cases where the number of arguments is known in advance and can be passed as a fixed list. This makes it easier to hardcode or directly pass arguments.
+
+#### **2. `execv` (Array of Arguments)**:
+
+- **Signature**: `int execv(const char *path, char *const argv[]);`
+- Similar to `execl`, but accepts an array of arguments (`argv[]`).
+- Example:
+  ```c
+  char *args[] = {"ls", "-l", NULL};
+  execv("/bin/ls", args);
+  ```
+- **Why it exists**: Useful when the number of arguments is determined dynamically (e.g., at runtime) and passed as an array.
+
+#### **3. `execle` (List of Arguments and Environment)**:
+
+- **Signature**: `int execle(const char *path, const char *arg0, ..., (char *) 0, char *const envp[]);`
+- Like `execl`, but additionally allows the caller to specify the **environment variables** explicitly.
+- Example:
+  ```c
+  char *envp[] = {"USER=gautam", "PATH=/bin", NULL};
+  execle("/bin/ls", "ls", "-l", (char *)NULL, envp);
+  ```
+- **Why it exists**: Sometimes a new environment needs to be set for the new program without modifying the current process's environment variables.
+
+#### **4. `execve` (Array of Arguments and Environment)**:
+
+- **Signature**: `int execve(const char *path, char *const argv[], char *const envp[]);`
+- Combines `execv` with the ability to specify environment variables.
+- Example:
+  ```c
+  char *args[] = {"ls", "-l", NULL};
+  char *envp[] = {"USER=gautam", "PATH=/bin", NULL};
+  execve("/bin/ls", args, envp);
+  ```
+- **Why it exists**: For cases where both arguments and the environment need to be passed dynamically. It provides the most control but requires more effort from the programmer.
+
+#### **5. `execlp` (List of Arguments, Search in `PATH`)**:
+
+- **Signature**: `int execlp(const char *file, const char *arg0, ..., (char *) 0);`
+- Similar to `execl`, but instead of specifying the full path to the executable, it searches for the executable in the system's **`PATH`**.
+- Example:
+  ```c
+  execlp("ls", "ls", "-l", (char *)NULL);
+  ```
+- **Why it exists**: Convenient when you want to run a command that might be located in different directories but is likely to be in the user's `PATH`.
+
+#### **6. `execvp` (Array of Arguments, Search in `PATH`)**:
+
+- **Signature**: `int execvp(const char *file, char *const argv[]);`
+- Like `execv`, but searches for the executable in the system’s `PATH`.
+- Example:
+  ```c
+  char *args[] = {"ls", "-l", NULL};
+  execvp("ls", args);
+  ```
+- **Why it exists**: Combines dynamic argument passing with the convenience of automatically searching the executable in the `PATH`. Useful for running common commands without needing to hardcode their full paths.
+
+### 3. **Common Characteristics of `exec` Variants:**
+
+- **Replace the process image**: All `exec` functions replace the current process image with the new executable, so the calling process does not continue executing its original code after a successful `exec` call.
+- **No return on success**: If `exec` succeeds, it never returns because the new executable takes over. It only returns if there's an error (e.g., if the executable is not found).
+- **Environment inheritance**: By default, the child process inherits the parent's environment unless overridden by functions like `execle` or `execve`.
+
+### 4. **Why So Many Variants?**
+
+- **Flexibility**: Each variant offers a different level of flexibility, whether for **static argument lists** (`execl`) or **dynamic argument arrays** (`execv`).
+- **Environment control**: Some variants, like `execle` and `execve`, allow you to explicitly control the environment variables passed to the new executable.
+- **Path searching**: Variants like `execlp` and `execvp` simplify command execution by searching for executables in the system's `PATH`.
+- **Convenience vs. Control**: Some programs may need full control over argument and environment handling, while others prioritize convenience, such as executing a common command from the `PATH`.
+
+### Conclusion:
+
+The `exec` family of functions provides varying levels of control and flexibility, allowing programs to choose the most appropriate method for launching new executables based on their needs—whether they want to pass arguments statically or dynamically, control environment variables, or search the system's `PATH` for executables.
