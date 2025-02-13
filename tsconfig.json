@@ -40,7 +40,8 @@
     ".contentlayer/generated",
     ".contentlayer/generated/**/*.json",
     ".next/types/**/*.ts",
-    "components/*.jsx"
+    "components/*.jsx",
+    "components/gs_plot/LinePlot.jsx"
   ],
   "exclude": ["node_modules"]
 }

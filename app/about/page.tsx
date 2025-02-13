@@ -15,6 +15,7 @@ export default function Page() {
   return (
     <>
       <AuthorLayout content={mainContent}>
+        {/* Don't know what it does */}
         <MDXLayoutRenderer code={author.body.code} />
         <MyTimeline />
       </AuthorLayout>

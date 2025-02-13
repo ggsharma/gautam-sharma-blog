@@ -46,38 +46,36 @@ export default function MyTimeline() {
       {/* Mathworks */}
       {recentWork.map((work, idx) => {
         return (
-          <>
+          <div
+            key={idx}
+            style={{ display: "flex", width: "100%", marginBottom: 40 }}
+          >
             <div
-              key={idx}
-              style={{ display: "flex", width: "100%", marginBottom: 40 }}
+              style={{
+                flex: "0 0 25%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
             >
-              <div
+              <Image
+                src={work.logo}
+                width={200}
+                height={200}
                 style={{
-                  flex: "0 0 25%",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
+                  width: "100%",
+                  height: "auto",
+                  marginTop: 0,
+                  paddingTop: 0,
                 }}
-              >
-                <Image
-                  src={work.logo}
-                  width={200}
-                  height={200}
-                  style={{
-                    width: "100%",
-                    height: "auto",
-                    marginTop: 0,
-                    paddingTop: 0,
-                  }}
-                  alt={work.alt}
-                />
-                <div style={{ marginTop: 10 }}>{work.date}</div>
-              </div>
-              <div style={{ flex: "0 0 75%", marginLeft: 20 }}>
-                {parse(work.work)}
-              </div>
+                alt={work.alt}
+              />
+              <div style={{ marginTop: 10 }}>{work.date}</div>
             </div>
-          </>
+            <div style={{ flex: "0 0 75%", marginLeft: 20 }}>
+              {parse(work.work)}
+            </div>
+          </div>
         );
       })}
     </div>
