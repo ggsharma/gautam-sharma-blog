@@ -1,0 +1,196 @@
+---
+draft: false
+title: "My First CUDA Adventure: Adding and Multiplying Arrays on the GPU"
+summary: "Learn CUDA programming with array addition and multiplication. Discover why GPU is not always faster than CPU and common beginner mistakes to avoid."
+date: "2025-07-19"
+tags: ["cpp", "cuda", "gpu"]
+images: ["/static/images/blog/cuda/week1.png"]
+---
+
+# My First CUDA Adventure: Adding and Multiplying Arrays on the GPU
+
+## Why CUDA? And Why Did My First Attempt Shock Me?
+
+So, I decided to dive into CUDA programming, thinking I'd see some amazing GPU speedups right off the bat. Boy, was I in for a surprise! Let me share what happened when I tried to perform simple array addition and multiplication operations on both CPU and GPU.
+
+Here's the reality check I got:
+
+```
+GPU Addition:     299.814 milliseconds
+GPU Multiplication: 25.02 milliseconds
+CPU Addition:       0.32 milliseconds
+CPU Multiplication: 0.313 milliseconds
+```
+
+Wait, what? The CPU was **faster**? Let me explain what's going on here and what I learned from this humbling experience.
+
+## The Basic Setup
+
+Before we dive into the why, let's look at what I was trying to do. I wanted to perform element-wise operations on arrays of 100,000 integers:
+
+```cpp
+constexpr int N = 100000;
+
+// Initialize arrays
+for(int i = 0; i < N; i++){
+    a[i] = -i;
+    b[i] = i * i;
+}
+```
+
+Simple enough, right? Array `a` gets negative values, array `b` gets squares, and I want to either add them or multiply them element by element.
+
+## The CUDA Kernels: Keep It Simple
+
+Here are the GPU kernels I wrote:
+
+```cuda
+__global__ void add(int* a, int* b, int* c, int N){
+    int tid = blockIdx.x;
+    if(tid < N){
+        c[tid] = a[tid] + b[tid];
+    }
+}
+
+__global__ void multiply(int* a, int* b, int* c, int N){
+    int tid = blockIdx.x;
+    if(tid < N){
+        c[tid] = a[tid] * b[tid];
+    }
+}
+```
+
+Each kernel is pretty straightforward. I'm using `blockIdx.x` as my thread ID, which means each block handles exactly one array element. The `if(tid < N)` check makes sure we don't go out of bounds.
+
+## The CPU Versions: Plain and Simple
+
+For comparison, here's what the CPU code looks like:
+
+```cpp
+void CPUAdditionExecution(int *a, int *b, int *c, int N){
+    for(int i = 0; i < N; i++){
+        volatile int d = c[i];  // This line is interesting...
+        c[i] = a[i] + b[i];
+    }
+}
+```
+
+Notice that `volatile int d = c[i]` line? That's there to prevent the compiler from being too clever and optimizing away parts of our benchmark.
+
+## The GPU Execution Flow: More Complex Than Expected
+
+Here's what happens every time I run a GPU operation:
+
+```cpp
+// 1. Allocate GPU memory
+cudaMalloc((void**)&dev_a, N * sizeof(int));
+cudaMalloc((void**)&dev_b, N * sizeof(int));
+cudaMalloc((void**)&dev_c, N * sizeof(int));
+
+// 2. Copy data from CPU to GPU
+cudaMemcpy(dev_a, a, N * sizeof(int), cudaMemcpyHostToDevice);
+cudaMemcpy(dev_b, b, N * sizeof(int), cudaMemcpyHostToDevice);
+
+// 3. Launch kernel
+add<<<N, 1>>>(dev_a, dev_b, dev_c, N);
+cudaDeviceSynchronize(); // Wait for GPU to finish
+
+// 4. Copy result back to CPU
+cudaMemcpy(c, dev_c, N * sizeof(int), cudaMemcpyDeviceToHost);
+
+// 5. Clean up
+cudaFree(dev_a);
+cudaFree(dev_b);
+cudaFree(dev_c);
+```
+
+That's a lot of overhead for simple operations!
+
+## Why Is the GPU Slower? The Reality Check
+
+Here's what I learned from this experiment:
+
+### 1. **Memory Transfer Overhead**
+
+The biggest killer here is the memory transfer. I'm copying data from CPU to GPU, doing a simple operation, then copying it back. For small, simple operations, this overhead completely dominates the execution time.
+
+### 2. **Kernel Launch Overhead**
+
+Every time you launch a CUDA kernel, there's overhead involved. For trivial operations like adding two numbers, this overhead is way more expensive than the actual computation.
+
+### 3. **Underutilizing the GPU**
+
+My kernel configuration `<<<N, 1>>>` means I'm launching N blocks with 1 thread each. Modern GPUs have thousands of cores, but I'm not really taking advantage of that parallel processing power effectively.
+
+### 4. **Problem Size Matters**
+
+100,000 elements might seem like a lot, but for a GPU, it's actually pretty small. GPUs shine when you have millions or billions of operations to perform.
+
+## The Surprising Multiplication Results
+
+Interestingly, multiplication was much faster on the GPU (25ms) compared to addition (299ms). Why? I honestly don't have a complete answer yet, but I suspect it might be related to:
+
+- Different memory access patterns
+- Compiler optimizations
+- GPU scheduling differences
+
+This is something I want to investigate further!
+
+## What I Learned
+
+This first CUDA experiment taught me several important lessons:
+
+1. **GPUs aren't magic** - They're not automatically faster for every operation
+2. **Memory transfers are expensive** - Sometimes more expensive than the computation itself
+3. **Problem size matters** - Small problems might not benefit from GPU acceleration
+4. **Proper benchmarking is crucial** - Understanding what you're measuring is key
+
+## Building a Useful Timer
+
+One thing that worked well in this project was my Timer class:
+
+```cpp
+class Timer{
+private:
+    decltype(std::chrono::high_resolution_clock::now()) _start;
+    decltype(std::chrono::high_resolution_clock::now()) _stop;
+    std::string param = "";
+public:
+    Timer(const std::string& s): param(s) {};
+
+    void start(){
+        _start = std::chrono::high_resolution_clock::now();
+    }
+
+    void stop(){
+        _stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(_stop - _start);
+
+        std::cout << "Time taken for " << param << " : " << duration.count() << " microseconds" << std::endl;
+        std::cout << "Time taken for " << param << " : " << duration.count() / 1000.0 << " milliseconds" << std::endl;
+    }
+};
+```
+
+This made it easy to time different operations and compare them. The key insight: always include `cudaDeviceSynchronize()` before stopping your timer, otherwise you're just measuring how long it takes to _launch_ the kernel, not how long it takes to _complete_.
+
+## What's Next?
+
+This experiment was humbling but educational. Next, I want to explore:
+
+1. **Larger problem sizes** - What happens with millions of elements?
+2. **Better kernel configurations** - Using more threads per block
+3. **Memory management strategies** - Keeping data on GPU between operations
+4. **More complex operations** - Where GPU parallel processing really shines
+
+## Conclusion
+
+My first CUDA adventure didn't give me the speedups I expected, but it gave me something more valuable: a realistic understanding of when and why to use GPU computing.
+
+Sometimes the journey teaches you more than the destination. The CPU won this round, but I'm just getting started with CUDA. The real power of GPU computing isn't in simple operations like these – it's in massively parallel problems where the computation heavily outweighs the memory transfer overhead.
+
+Stay tuned for more CUDA experiments where I'll hopefully see those GPU speedups everyone talks about!
+
+---
+
+_Want to try this yourself? The complete code is available in my [cuda-ml-journey](https://github.com/ggsharma/cuda-ml-journey) repository. Compile with: `nvcc -std=c++20 main.cu add.cu multiply.cu -O0 -o add-multiply`_
