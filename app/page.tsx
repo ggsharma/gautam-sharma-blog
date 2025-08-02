@@ -1,73 +1,121 @@
-// @ts-nocheck
-"use client";
-import { genPageMetadata } from "app/seo";
-// import { PageHeading } from "@/components/PageHeading";
 import Link from "next/link";
 
-import { annotate } from "rough-notation";
-import { useEffect } from "react";
-
-// export const metadata = genPageMetadata({
-//   title: "Gautam Sharma Blog",
-//   description: "Hi! I am Gautam and welcome to my blog.",
-// });
-
-export default async function Page() {
-  useEffect(() => {
-    const e = document.querySelector("#newsletter");
-    const annotation = annotate(e, { type: "underline", color: "yellow" });
-    annotation.show();
-  }, []);
+export default function Page() {
   return (
-    <div className="divide-y divide-gray-200 dark:divide-gray-700 ">
-      <div className="space-y-2 pb-8 pt-6 md:space-y-5">
-        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
-          <span id="newsletter">{"Join my Newsletter 👇🏻"}</span>
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      {/* Hero Section */}
+      <div className="text-center mb-16">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          Gautam Sharma
         </h1>
-        <h2 className="space-y-2  pt-6 md:space-y-5">
-          Stay updated on my coding journey 🔥!
-        </h2>
-        <p className="space-y-2 pb-8 pt-6 md:space-y-5">
-          These days I am mostly active on my{" "}
-          <Link
-            className="text-orange-400 text-pretty underline"
-            href={"https://gsharma.beehiiv.com/subscribe"}
-          >
-            newsletter
-          </Link>
-          . The contents on my website is not current since I am just
-          maintaining the newsletter at the moment. If you are interested in
-          learning about my journey from a mechanical engineer to a software
-          engineer, please do{" "}
-          <Link
-            className="text-orange-400 text-pretty underline"
-            href={"https://gsharma.beehiiv.com/subscribe"}
-          >
-            {"subscribe"}
-          </Link>
-          . I also talk about business, startups, software as a service and my
-          daily grind in learning new skills.
+        <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
+          Systems Engineer & Performance Optimizer
         </p>
+        <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+          I build high-performance systems, optimize GPU computing, and create
+          machine learning libraries from scratch.
+        </p>
+      </div>
 
-        <iframe
-          src="https://embeds.beehiiv.com/f428ff77-08d1-43d4-be41-27f54306476b"
-          data-test-id="beehiiv-embed"
-          width={"100%"}
-          height={320}
-          frameBorder="0"
-          scrolling="no"
-          style={{
-            borderRadius: 4,
-            border: "2px solid #e5e7eb",
-            margin: 0,
-            color: "red",
-            backgroundColor: "transparent",
-          }}
-          title="Newsletter Subscription"
-        />
+      {/* Engineering Focus */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            What I Do
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-blue-500 rounded-full"></div>
+              <span className="text-gray-700 dark:text-gray-300">
+                High-performance C++ systems
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-green-500 rounded-full"></div>
+              <span className="text-gray-700 dark:text-gray-300">
+                GPU computing with CUDA
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-purple-500 rounded-full"></div>
+              <span className="text-gray-700 dark:text-gray-300">
+                Machine learning libraries
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-orange-500 rounded-full"></div>
+              <span className="text-gray-700 dark:text-gray-300">
+                Distributed systems & gRPC
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Tech Stack
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "C++",
+              "CUDA",
+              "Python",
+              "gRPC",
+              "Machine Learning",
+              "Systems Programming",
+            ].map((tech) => (
+              <span
+                key={tech}
+                className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent News Section */}
+      <div className="mb-16">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+          Recent News
+        </h2>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Coming Soon
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                I'll be sharing updates about my latest projects, research, and
+                engineering insights here.
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm">
+              Soon
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Links */}
+      <div className="text-center">
+        <div className="flex flex-wrap justify-center gap-4">
+          <Link
+            href="/about"
+            className="px-6 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+          >
+            About Me
+          </Link>
+          <Link
+            href="https://github.com/ggsharma"
+            target="_blank"
+            className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            GitHub
+          </Link>
+        </div>
       </div>
     </div>
   );
-
-  // <PageHeading>Welcome to my Blog!</PageHeading>;
 }

@@ -8,18 +8,36 @@ const recentWork = [
   {
     logo: "static/images/site/matlab.svg",
     alt: "MathWorks logo",
-    date: "2021 - 2024",
-    work: `At MathWorks, I work as a software engineer developing low latency sensor simulation framework encompassing sensors like camera, radar, lidar and ultrasonic for automated driving applications. To leverage the power of the GPU, I also develop shaders in CUDA to enable ray tracing in C++ for photo realistic scenes. I am also the primary developer and maintainer of <a href="https://www.mathworks.com/help/driving/ref/birdseyescope-app.html">Bird's-Eye Scope</a>, a visualization tool for automated driving. <Image src="/static/images/site/rr.png" width={500} height={500} /><Image src="/static/images/site/bes.png"width={500}height={500} />
-               During my initial year, I worked extensively in the domain of computer vision and deep learning. 
-               I developed a <a href="https://www.mathworks.com/help/driving/ug/perception-based-parking-spot-detection-using-unreal-engine-simulation.html">vision-based parking spot detection system within a 3D simulation environment using Unreal Engine® </a>, 
-               involving the Automated Driving Toolbox, Computer Vision Toolbox, Simulink, and Image Processing Toolbox. 
-               The project included configuring a realistic parking lot scene, integrating and calibrating a camera sensor for semantic segmentation, 
-               and implementing algorithms to construct a bird's-eye-view map of the parking lot. 
-               <Image src="/static/images/site/semantic.png" width={400} height={400} alt="Residual Net detecting parking scene"/>
-               I trained resNet from scratch for semantic segmentation, applied traditional geometrical computer vision techniques like the Hough Transform, RANSAC, projective transformation, etc. for parking line detection, analyzed vertices to identify empty parking spots,
-               and object recognition.
-               <Image src="/static/images/site/ransac.png" width={400} height={400} alt="Using Hough Transforms and RANSAC to fit lines"/>
-               `,
+    date: "2021 - Present",
+    work: `At MathWorks, I work as a Senior Software Engineer developing cutting-edge sensor simulation frameworks for automated driving applications. My primary focus is on <b>edge diffraction ray tracing on GPUs</b> - creating ultra-fast <i>CUDA</i> algorithms that simulate how electromagnetic waves bend around objects for realistic radar and lidar simulations.
+<br>
+<br>
+
+<h3>Ray Tracing & GPU Computing</h3>
+I've developed a revolutionary edge diffraction algorithm that runs entirely on CUDA GPUs, achieving sub-3ms latency for real-time sensor simulation. This breakthrough enables photorealistic scenes with physically accurate wave propagation, crucial for testing autonomous vehicles in complex urban environments.
+<br>
+<br>
+
+ <Image src="/static/images/site/ray-tracing.png" width={500} height={500} alt="Edge diffraction ray tracing visualization" />
+ <Image src="/static/images/site/rt-1.png" width={500} height={500} alt="Real-time GPU ray tracing performance metrics" />
+
+ More info on my work can be found here : <a href="https://www.mathworks.com/help/comm/ug/accelerate-ray-tracing-analysis-using-gpu.html" alt="Raytracing on GPU work">Raytracing on GPU work </a>
+
+<h3>High-Performance Networking</h3>
+I've also built a groundbreaking networking library that enables seamless data transfer between MATLAB and C++ processes, reducing cross-language communication latency by 75%. Using Protocol Buffers, gRPC, and ZeroMQ, this system handles massive datasets at 96 FPS for real-time applications.
+<br>
+<br>
+<h3>Bird's-Eye Scope Leadership</h3>
+As the primary developer and maintainer of <a href="https://www.mathworks.com/help/driving/ref/birdseyescope-app.html">Bird's-Eye Scope</a>, I've transformed this visualization tool into a comprehensive platform for automated driving development, supporting 100,000+ lines of C/C++ code with 3D graphics using Unreal Engine 5.
+
+<Image src="/static/images/site/bes.png" width={600} height={400} alt="Bird's-Eye Scope interface showing 3D autonomous driving visualization" />
+<br>
+<br>
+<h3>Early Computer Vision Work</h3>
+
+During my initial years, I developed a complete <a href="https://www.mathworks.com/help/driving/ug/perception-based-parking-spot-detection-using-unreal-engine-simulation.html">vision-based parking spot detection system</a> using Unreal Engine simulation. This involved training ResNet from scratch for semantic segmentation and implementing classical computer vision techniques like Hough Transforms and RANSAC for precise parking line detection.
+
+<Image src="/static/images/site/semantic.png" width={500} height={400} alt="ResNet semantic segmentation detecting parking spots in realistic 3D environment" />`,
   },
   {
     logo: "static/images/site/stanford.svg",
