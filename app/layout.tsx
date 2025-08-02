@@ -11,28 +11,6 @@ import siteMetadata from "@/data/siteMetadata";
 import { ThemeProviders } from "./theme-providers";
 import { Metadata } from "next";
 
-import "@mantine/core/styles.css";
-
-import { createTheme, MantineProvider } from "@mantine/core";
-
-const theme = createTheme({
-  primaryColor: "pink",
-  colors: {
-    pink: [
-      "#fff0f6",
-      "#ffdeeb",
-      "#fcc2d7",
-      "#faa2c1",
-      "#f783ac",
-      "#f06595",
-      "#e64980",
-      "#d6336c",
-      "#c2255c",
-      "#a61e4d",
-    ],
-  },
-});
-
 // const space_grotesk = Space_Grotesk({
 //   subsets: ['latin'],
 //   display: 'swap',
@@ -134,27 +112,26 @@ export default function RootLayout({
         content="#000"
       />
       <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
-      <MantineProvider theme={theme}>
-        <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
-          <ThemeProviders>
-            <Analytics
-              analyticsConfig={siteMetadata.analytics as AnalyticsConfig}
-            />
 
-            <SectionContainer>
-              <div className="flex h-screen flex-col justify-between font-sans">
-                <SearchProvider
-                  searchConfig={siteMetadata.search as SearchConfig}
-                >
-                  <Header />
-                  <main className="mb-auto">{children}</main>
-                </SearchProvider>
-                <Footer />
-              </div>
-            </SectionContainer>
-          </ThemeProviders>
-        </body>
-      </MantineProvider>
+      <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
+        <ThemeProviders>
+          <Analytics
+            analyticsConfig={siteMetadata.analytics as AnalyticsConfig}
+          />
+
+          <SectionContainer>
+            <div className="flex h-screen flex-col justify-between font-sans">
+              <SearchProvider
+                searchConfig={siteMetadata.search as SearchConfig}
+              >
+                <Header />
+                <main className="mb-auto">{children}</main>
+              </SearchProvider>
+              <Footer />
+            </div>
+          </SectionContainer>
+        </ThemeProviders>
+      </body>
     </html>
   );
 }
