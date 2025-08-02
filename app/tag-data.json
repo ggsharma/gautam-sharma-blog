@@ -25,13 +25,13 @@
   "book": 1,
   "reflection": 1,
   "life": 1,
-  "cuda": 2,
-  "gpu": 2,
-  "performance": 1,
+  "system-design": 1,
+  "data-structures": 1,
+  "algorithms": 1,
   "os": 1,
   "unix": 1,
   "multi-author": 1,
-  "system-design": 1,
-  "data-structures": 1,
-  "algorithms": 1
+  "cuda": 2,
+  "gpu": 2,
+  "performance": 1
 }

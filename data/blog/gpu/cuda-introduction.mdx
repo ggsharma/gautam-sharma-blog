@@ -44,7 +44,7 @@ Simple enough, right? Array `a` gets negative values, array `b` gets squares, an
 
 Here are the GPU kernels I wrote:
 
-```cuda
+```cpp
 __global__ void add(int* a, int* b, int* c, int N){
     int tid = blockIdx.x;
     if(tid < N){

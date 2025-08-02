@@ -151,7 +151,7 @@ export default function ListLayoutWithTags({
                             />
                           </div>
                         ) : (
-                          <div className="relative h-48 bg-gray-200 dark:bg-gray-700 md:h-full" />
+                          <></>
                         )}
                         <div className="col-span-2 p-6">
                           <div className="flex flex-col justify-between h-full">

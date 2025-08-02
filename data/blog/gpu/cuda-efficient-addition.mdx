@@ -13,7 +13,7 @@ Last week, I took my first steps into CUDA programming with basic array operatio
 
 Looking back at my week 1 implementation, the issue was glaringly obvious once I understood CUDA's execution model better. I was using:
 
-```cuda
+```cpp
 add<<<N,1>>>(dev_a, dev_b, dev_c, N);  // One thread per block!
 ```
 
@@ -25,7 +25,7 @@ This week's implementation introduces two crucial concepts that transformed my u
 
 ### Better Thread Indexing
 
-```cuda
+```cpp
 __global__ void add(int*a, int *b , int*c, size_t N){
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     while(tid < N){
@@ -49,7 +49,7 @@ Instead of trying to launch exactly N threads, we launch a reasonable number of 
 
 ### Optimal Launch Configuration
 
-```cuda
+```cpp
 add<<<128,128>>>(dev_a, dev_b, dev_c, N);  // 128 blocks × 128 threads = 16,384 total threads
 ```
 
@@ -117,7 +117,7 @@ Comparing the kernel implementations:
 
 **Week 1 (problematic):**
 
-```cuda
+```cpp
 __global__ void add(int*a, int *b , int*c, int N){
     int tid = blockIdx.x;  // Only using block index
     if(tid < N){
@@ -129,7 +129,7 @@ __global__ void add(int*a, int *b , int*c, int N){
 
 **Week 2 (improved):**
 
-```cuda
+```cpp
 __global__ void add(int*a, int *b , int*c, size_t N){
     int tid = threadIdx.x + blockIdx.x * blockDim.x;  // Proper global index
     while(tid < N){
@@ -152,4 +152,4 @@ Next week, I'm planning to explore:
 
 The journey from "GPU slower than CPU" to "GPU 53× faster" in just one week shows the importance of understanding the fundamentals. CUDA's power lies not just in parallelism, but in _intelligent_ parallelism.
 
-Ready to dive deeper into the world of high-performance GPU computing! 🚀
+_Want to try this yourself? The complete code is available in my [cuda-ml-journey](https://github.com/ggsharma/cuda-ml-journey) repository. Compile with: `nvcc -std=c++20 main.cu add.cu multiply.cu -O0 -o add-multiply`_
