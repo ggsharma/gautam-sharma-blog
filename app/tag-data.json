@@ -1,7 +1,8 @@
 {
-  "cpp": 12,
-  "cuda": 2,
-  "gpu": 2,
+  "cpp": 13,
+  "cuda": 3,
+  "gpu": 3,
+  "ml": 1,
   "performance": 1,
   "os": 1,
   "unix": 1,

@@ -1,0 +1,227 @@
+---
+draft: false
+title: "CUDA Dot Product Reduction: Beyond Simple Array Operations"
+summary: "Learn parallel reduction with a practical dot product implementation. Discover grid-stride loops and shared memory patterns for real machine learning applications."
+date: "2025-08-03"
+tags: ["cpp", "cuda", "gpu", "ml"]
+images: ["/static/images/blog/cuda/week3/reduction-cover.svg"]
+---
+
+After mastering basic array addition and multiplication in my [previous CUDA adventure](/blog/gpu/week1-cuda-introduction), I wanted to tackle something more practical for machine learning: **dot product reduction**. This operation - multiplying corresponding elements of two arrays and summing the results - is everywhere in ML: loss functions, similarity calculations, and gradient computations.
+
+The challenge? Doing this efficiently on GPU requires combining element-wise operations with parallel reduction - a perfect next step from my simple array operations.
+
+## The CPU Approach
+
+On CPU, dot product is straightforward:
+
+```cpp
+float dot_product_cpu(float* a, float* b, int N) {
+    float sum = 0;
+    for(int i = 0; i < N; i++) {
+        sum += a[i] * b[i];
+    }
+    return sum;
+}
+```
+
+But this sequential approach wastes the GPU's parallel power. We need a strategy that combines parallel computation with reduction.
+
+## My CUDA Implementation
+
+Here's the kernel I developed:
+
+```cpp
+__global__ void dot_product_kernel(float* a, float* b, float* result, int N) {
+    __shared__ float cache[threadsPerBlock];
+
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int cacheIndex = threadIdx.x;
+
+    float temp = 0;
+
+    // Grid-stride loop: each thread processes multiple elements
+    while(tid < N) {
+        temp += a[tid] * b[tid];
+        tid += blockDim.x * gridDim.x;
+    }
+
+    // Store partial result in shared memory
+    cache[cacheIndex] = temp;
+    __syncthreads();
+
+    // Reduction in shared memory
+    int i = blockDim.x / 2;
+    while(i != 0) {
+        if(cacheIndex < i) {
+            cache[cacheIndex] += cache[cacheIndex + i];
+        }
+        __syncthreads();
+        i /= 2;
+    }
+
+    // First thread writes block result
+    if(cacheIndex == 0) {
+        result[blockIdx.x] = cache[0];
+    }
+}
+```
+
+## Key Concepts Explained
+
+### Grid-Stride Loop
+
+```cpp
+while(tid < N) {
+    temp += a[tid] * b[tid];
+    tid += blockDim.x * gridDim.x;  // Jump by total grid size
+}
+```
+
+This elegant pattern lets each thread process multiple elements. Instead of launching millions of threads for millions of elements, we use fewer threads that each do more work. Benefits:
+
+- Handles arrays of any size with a single kernel launch
+- Better memory locality
+- Reduces kernel launch overhead
+
+<Image
+  src="/static/images/blog/cuda/week3/thread-stride.svg"
+  width={1000}
+  height={800}
+  alt="Diagram showing how threads stride through array elements"
+/>
+
+### Two-Phase Operation
+
+**Phase 1: Compute**
+Each thread multiplies corresponding elements and accumulates locally in registers (`temp`).
+
+**Phase 2: Reduce**
+Threads collaborate within each block using shared memory to sum their partial results.
+
+<Image
+  src="/static/images/blog/cuda/week3/reduction.svg"
+  width={1000}
+  height={800}
+  alt="Diagram showing threads computing partial sums, then collaborating in shared memory"
+/>
+
+### Shared Memory Reduction
+
+The reduction follows a tree pattern - threads pair up and combine results:
+
+- Step 1: Thread 0 + Thread 4, Thread 1 + Thread 5, etc.
+- Step 2: Thread 0 + Thread 2, Thread 1 + Thread 3, etc.
+- Step 3: Thread 0 + Thread 1
+- Final: Thread 0 has the result
+
+```cpp
+int i = blockDim.x / 2;
+while(i != 0) {
+    if(cacheIndex < i) {
+        cache[cacheIndex] += cache[cacheIndex + i];
+    }
+    __syncthreads();
+    i /= 2;
+}
+```
+
+## Complete Host Code
+
+```cpp
+void dot_product_gpu(float* h_a, float* h_b, float* result, int N) {
+    float *d_a, *d_b, *d_partial_results;
+
+    const int threadsPerBlock = 256;
+    const int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+
+    // Allocate GPU memory
+    cudaMalloc(&d_a, N * sizeof(float));
+    cudaMalloc(&d_b, N * sizeof(float));
+    cudaMalloc(&d_partial_results, blocksPerGrid * sizeof(float));
+
+    // Copy data to GPU
+    cudaMemcpy(d_a, h_a, N * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, h_b, N * sizeof(float), cudaMemcpyHostToDevice);
+
+    // Launch kernel
+    dot_product_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_partial_results, N);
+
+    // Copy partial results back and sum on CPU
+    float* h_partial = new float[blocksPerGrid];
+    cudaMemcpy(h_partial, d_partial_results, blocksPerGrid * sizeof(float), cudaMemcpyDeviceToHost);
+
+    *result = 0;
+    for(int i = 0; i < blocksPerGrid; i++) {
+        *result += h_partial[i];
+    }
+
+    // Cleanup
+    delete[] h_partial;
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_partial_results);
+}
+```
+
+## Performance Results
+
+### Testing with 1M element arrays:
+
+| Implementation  | Time (ms) |
+| --------------- | --------- |
+| GPU Sequential  | 16.335 ms |
+| CPU Dot Product | 2.967 ms  |
+
+The CPU version significantly outperforms GPU.
+
+This analysis just measures the kernel execution or the function execution on the CPU. It does not take into account memory allocation or deallocation.
+
+### Testing with 10M element arrays:
+
+| Implementation  | Time (ms) |
+| --------------- | --------- |
+| GPU Sequential  | 16.262 ms |
+| CPU Dot Product | 28.847 ms |
+
+It's quite fascinating how the time taken by GPU remains the same even though we just increased the data size by a factor of 10.
+
+### Testing with 10M element arrays including memory allocation:
+
+Measuring the performance for the whole process including memory allocation and deallocation, we get:
+
+| Implementation  | Time (ms)  |
+| --------------- | ---------- |
+| GPU Sequential  | 385.854 ms |
+| CPU Dot Product | 104.82 ms  |
+
+## Real-World Applications
+
+This dot product pattern appears everywhere in ML:
+
+```cpp
+// Loss function (mean squared error)
+float mse_loss = dot_product(predictions, targets, N) / N;
+
+// Cosine similarity
+float similarity = dot_product(vector1, vector2, N) /
+                  (norm(vector1) * norm(vector2));
+
+// Gradient descent update
+float gradient_magnitude = dot_product(gradients, gradients, N);
+```
+
+## What I Learned
+
+1. **Grid-stride loops** are elegant for handling variable-sized data
+2. **Shared memory** enables efficient thread collaboration within blocks
+3. **Two-phase algorithms** (compute + reduce) are common in GPU programming
+4. **Partial results** from blocks can be combined on CPU for simplicity
+
+This dot product implementation bridges the gap between my simple array operations and more complex ML algorithms. The reduction pattern here will be useful for implementing neural network layers, optimization algorithms, and statistical computations.
+
+Next up: exploring how these patterns scale to matrix operations and more advanced ML primitives!
+
+---
+
+_Code for this dot product implementation is available in my [cuda-ml-journey repository](https://github.com/ggsharma/cuda-ml-journey)._
