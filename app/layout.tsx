@@ -9,6 +9,7 @@ import SectionContainer from "@/components/SectionContainer";
 import Footer from "@/components/Footer";
 import siteMetadata from "@/data/siteMetadata";
 import { ThemeProviders } from "./theme-providers";
+import Link from "next/link";
 import { Metadata } from "next";
 
 // const space_grotesk = Space_Grotesk({
@@ -127,6 +128,7 @@ export default function RootLayout({
                 <Header />
                 <main className="mb-auto">{children}</main>
               </SearchProvider>
+
               <Footer />
             </div>
           </SectionContainer>
